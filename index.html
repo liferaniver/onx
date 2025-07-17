@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onx Web Terminal</title>
+  <style>
+    body {
+      background: #181c20;
+      color: #39ff14;
+      font-family: 'Fira Mono', 'Consolas', monospace;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .terminal {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      background: linear-gradient(135deg, #181c20 80%, #23272e 100%);
+      box-shadow: 0 0 40px #0f0a, 0 0 2px #39ff14;
+      border-radius: 0 0 8px 8px;
+      min-height: 0;
+    }
+    .line {
+      margin-bottom: 8px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .user {
+      color: #39ff14;
+      font-weight: bold;
+    }
+    .ai {
+      color: #00bfff;
+      font-weight: normal;
+    }
+    .input-area {
+      display: flex;
+      align-items: center;
+      background: #101214;
+      padding: 16px 24px;
+      border-top: 1px solid #222;
+    }
+    .prompt {
+      color: #39ff14;
+      font-weight: bold;
+      margin-right: 8px;
+      font-size: 1.1em;
+    }
+    .cmd-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #39ff14;
+      font-family: inherit;
+      font-size: 1.1em;
+      flex: 1;
+      caret-color: #39ff14;
+      padding: 0;
+    }
+    .blinking-cursor {
+      display: inline-block;
+      width: 10px;
+      background: #39ff14;
+      animation: blink 1s steps(1) infinite;
+      height: 1.2em;
+      vertical-align: bottom;
+      margin-left: 2px;
+    }
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+    ::selection {
+      background: #39ff1440;
+    }
+    @media (max-width: 600px) {
+      .terminal, .input-area { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="terminal" id="terminal">
+    <div class="line ai">Welcome to <b>Onx</b> Web Terminal!<br>Type your command below.</div>
+  </div>
+  <form class="input-area" id="cmdForm" autocomplete="off">
+    <span class="prompt">onx&gt;</span>
+    <input type="text" id="cmdInput" class="cmd-input" autofocus autocomplete="off" spellcheck="false" />
+    <span class="blinking-cursor"></span>
+  </form>
+  <script>
+    const terminal = document.getElementById('terminal');
+    const cmdForm = document.getElementById('cmdForm');
+    const cmdInput = document.getElementById('cmdInput');
+
+    function appendLine(text, cls) {
+      const div = document.createElement('div');
+      div.className = 'line ' + cls;
+      div.innerHTML = text;
+      terminal.appendChild(div);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    cmdForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const cmd = cmdInput.value.trim();
+      if (!cmd) return;
+      appendLine('onx&gt; ' + cmd, 'user');
+      cmdInput.value = '';
+      appendLine('onx is thinking...', 'ai');
+      terminal.scrollTop = terminal.scrollHeight;
+      try {
+        const res = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: cmd })
+        });
+        const data = await res.json();
+        // Remove the 'thinking...' line
+        terminal.removeChild(terminal.lastChild);
+        appendLine(data.response, 'ai');
+      } catch (err) {
+        terminal.removeChild(terminal.lastChild);
+        appendLine('Error: ' + err, 'ai');
+      }
+    };
+  </script>
+</body>
+</html> 
